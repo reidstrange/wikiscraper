@@ -25,10 +25,10 @@ pip install -r requirements.txt
 python3 wikiscraper.py
 ```
 
-
+# Usage:
 _This usage guide is based on the documentation for connecting to CloudAMQP:  https://www.cloudamqp.com/docs/python.html_
 
-## making a call to wikiscraper in Python:
+## 1)  Add this setup code at the top of the .py file where you'll be using the microservice
 
 ```
 import pika, os
@@ -39,45 +39,40 @@ url = os.environ.get('CLOUDAMQP_URL', 'amqps://bzwlgfru:nSPek3rNzDaKr_OrsM0rmBUG
 # Set up connection to RabbitMQ
 params = pika.URLParameters(url)
 connection = pika.BlockingConnection(params)
+
+# Set up message queue channel for queries
 queryChannel = connection.channel()
 queryChannel.queue_declare(queue='wikiscraperQuery') # This is the queue responsible for transmitting queries
 
-# Send query string into the pipe
-queryChannel.basic_publish(exchange='',
-                      routing_key='wikiscraperQuery',
-                      body='Query String') # Insert your query string or variable here.
-                      
-connection.close()
-```
-
-
-## receiving a response from wikiscraper in Python
-
-```
-import pika, os, json
-
-# The url passed in to os.environ.get is the url for an instance of rabbitMQ running on CloudAMQP
-url = os.environ.get('CLOUDAMQP_URL', 'amqps://bzwlgfru:nSPek3rNzDaKr_OrsM0rmBUGDHf7HROz@beaver.rmq.cloudamqp.com/bzwlgfru')
-
-# Set up connection to RabbitMQ
-params = pika.URLParameters(url)
-connection = pika.BlockingConnection(params)
+# Set up message queue channel for responses
 responseChannel = connection.channel() # start a channel
 responseChannel.queue_declare(queue='wikiscraperResponse') # This is the queue responsible for transmitting responses
 
-# This function is called when the response is received,
-# This is where you should process the response data.
-def callback(ch, method, properties, body):
-  response_dict = json.loads(str(body)) # response_dict holds the response data in a Python dictionary
-
 # Listen for incoming responses from the pipe
 responseChannel.basic_consume('wikiscraperResponse',
-                      callback,
+                      response_callback,
                       auto_ack=True)
-
-print(' [*] Waiting for messages:')
+                      
 responseChannel.start_consuming()
-connection.close()
+```
+
+## 2)  Send a search query to the microservice:
+
+```
+queryChannel.basic_publish(exchange='',
+                          routing_key='wikiscraperQuery',
+                          body='Query String') # Insert your query string or variable here.
+```
+
+
+## 3)  Process the response from the microservice using the callback function 
+```
+def response_callback(ch, method, properties, body):
+    # response is a dictionary containing the results from the wikiscraper microservice
+    response = json.loads(str(body))
+    # ------------------------------
+    # Process the response data here
+    # ------------------------------
 ```
 
 
