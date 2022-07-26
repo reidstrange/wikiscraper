@@ -75,6 +75,7 @@ def response_callback(ch, method, properties, body):
     # ------------------------------
 ```
 
+![UML Sequence Diagram](https://drive.google.com/file/d/11hnpeV40RebEIpkCfKOpjZ-ncbuw8YOd/view?usp=sharing)
 
 
 
