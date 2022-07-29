@@ -46,10 +46,10 @@ Example:
 results = search_for('nasa')
 
 # Prints a summary of the wikipedia article
-print(results.description)
+print(results['description'])
 
-# Prints a list of image urls
-print(results.images)
+# Prints the first url in the list of images
+print(results['images'][0])
 ```
 
 ![UML Sequence Diagram](https://github.com/reidstrange/wikiscraper/blob/main/uml.png)
