@@ -52,7 +52,7 @@ print(results.description)
 print(results.images)
 ```
 
-![UML Sequence Diagram](https://drive.google.com/file/d/11hnpeV40RebEIpkCfKOpjZ-ncbuw8YOd/view?usp=sharing)
+![UML Sequence Diagram](https://github.com/reidstrange/wikiscraper/blob/main/uml.png)
 
 
 
