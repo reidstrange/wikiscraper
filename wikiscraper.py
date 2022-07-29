@@ -6,46 +6,57 @@ import json
 
 
 def main():
+    # Get URL for RabbitMQ instance running on CloudAMQP account
     message_queue_url = os.environ.get(
         'CLOUDAMQP_URL', 'amqps://bzwlgfru:nSPek3rNzDaKr_OrsM0rmBUGDHf7HROz@beaver.rmq.cloudamqp.com/bzwlgfru')
+
+    # Set queue names
+    query_queue = 'wikiscraperQuery'
+    response_queue = 'wikiscraperResponse'
+
+    # Set up connection to RabbitMQ
     params = pika.URLParameters(message_queue_url)
-
     rabbit_mq_connection = pika.BlockingConnection(params)
-
-    # initialize channel for queries
-    queryChannel = rabbit_mq_connection.channel()
-    queryChannel.queue_declare(queue='wikiscraperQuery')
-
-    # initialize channel for responses
-    responseChannel = rabbit_mq_connection.channel()
-    responseChannel.queue_declare(queue='wikiscraperResponse')
+    rabbit_mq_channel = rabbit_mq_connection.channel()
 
     def send_response(ch, method, properties, body):
 
+        # Get top wikipedia search result
+        search_results = wikipedia.search(body)
+        top_result = search_results[0]
+
         # Get summary of wikipedia article
-        searchResults = wikipedia.search(body)
-        topResult = searchResults[0]
-        description = wikipedia.summary(topResult)
+        # or top disambiguation result
+        try:
+            description = wikipedia.summary(
+                top_result, auto_suggest=False, redirect=False)
+        except wikipedia.exceptions.DisambiguationError as err:
+            top_result = err.options[0]
+            description = wikipedia.summary(
+                top_result)
 
         # Get image from wikipedia article
-        page = wikipedia.page(topResult)
-        img = page.images[2]
+        try:
+            page = wikipedia.page(
+                title=top_result, auto_suggest=False, redirect=False)
+            images = list(filter(lambda x: x[-3:] == 'jpg', page.images))
+        except:
+            images = []
 
-        # Create object and send as response
+        # Create JSON object and send as response
         response = {
             'description': description,
-            'img': img
+            'images': images
         }
+        response_string = json.dumps(response)
+        rabbit_mq_channel.basic_publish(
+            exchange='', routing_key=response_queue, body=response_string)
 
-        responseString = json.dumps(response)
-        responseChannel.basic_publish(
-            exchange='', routing_key='wikiscraperResponse', body=responseString)
-
-    queryChannel.basic_consume(
-        queue='wikiscraperQuery', on_message_callback=send_response, auto_ack=True)
+    rabbit_mq_channel.basic_consume(
+        queue=query_queue, on_message_callback=send_response, auto_ack=True)
 
     print(' [*] Waiting for messages. To exit press CTRL+C')
-    queryChannel.start_consuming()
+    rabbit_mq_channel.start_consuming()
 
 
 if __name__ == '__main__':
