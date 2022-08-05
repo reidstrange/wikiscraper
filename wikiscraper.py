@@ -14,10 +14,12 @@ def main():
     query_queue = 'wikiscraperQuery'
     response_queue = 'wikiscraperResponse'
 
-    # Set up connection to RabbitMQ
+    # Set up connection to RabbitMQ and declare queues
     params = pika.URLParameters(message_queue_url)
     rabbit_mq_connection = pika.BlockingConnection(params)
     rabbit_mq_channel = rabbit_mq_connection.channel()
+    rabbit_mq_channel.queue_declare(queue=query_queue)
+    rabbit_mq_channel.queue_declare(queue=response_queue)
 
     def send_response(ch, method, properties, body):
 
